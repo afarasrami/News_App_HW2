@@ -1,7 +1,12 @@
 package com.example.rkjc.news_app_2;
 
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -18,14 +23,14 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
-
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NewsRecyclerViewAdapter.NewsClick {
     private static final String TAG = "MainActivity";
-    private RecyclerView mRecyclerView;
+    private RecyclerView recyclerView;
     private NewsRecyclerViewAdapter mAdapter;
     private ArrayList<NewsItem> newsItems = new ArrayList<>();
+    private NewsItemViewModel newsItemViewModel;
 
 
     @Override
@@ -33,12 +38,23 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mRecyclerView = findViewById(R.id.news_recyclerview);
-        mAdapter = new NewsRecyclerViewAdapter(this, newsItems);
-        mRecyclerView.setAdapter(mAdapter);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        NewsQueryTask task = new NewsQueryTask();
-        task.execute();
+//        mRecyclerView = findViewById(R.id.news_recyclerview);
+//        mAdapter = new NewsRecyclerViewAdapter(this, newsItems);
+//        mRecyclerView.setAdapter(mAdapter);
+//        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+//        NewsQueryTask task = new NewsQueryTask();
+//        task.execute();
+        recyclerView = (RecyclerView)findViewById(R.id.news_recyclerview);
+        newsItemViewModel = ViewModelProviders.of(this).get(NewsItemViewModel.class);
+        newsItemViewModel.getAllNewsItems().observe(this, new Observer<List<NewsItem>>() {
+            @Override
+            public void onChanged(@Nullable List<NewsItem> newsItems) {
+                mAdapter = new NewsRecyclerViewAdapter(MainActivity.this, new ArrayList<NewsItem>(newsItems));
+                recyclerView.setAdapter(mAdapter);
+                recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+                newsItems = NewsRepository.SyncNewsTask.newsItems;
+            }
+        });
     }
 
     public void populateRecyclerView(String jstring) {
@@ -46,6 +62,13 @@ public class MainActivity extends AppCompatActivity {
         newsItems = JsonUtils.parseNews(jstring);
         mAdapter.newsItems.addAll(newsItems);
         mAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onNewsClick(int i) {
+        String link = newsItems.get(i).getUrl();
+        Intent browseIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
+        startActivity(browseIntent);
     }
 
     class NewsQueryTask extends AsyncTask<String, Void, String>{
@@ -73,25 +96,12 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-//    private URL makeNewsQueryTask() {
-//       // String newsQuery = mSearchBoxEditText.getText().toString();
-//        URL githubSearchUrl = NetworkUtils.buildUrl(newsQuery);
-//        String urlString = githubSearchUrl.toString();
-//        Log.d("mycode", urlString);
-//        return githubSearchUrl;
-//
-//
-//    }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemThatWasClickedId = item.getItemId();
         if (itemThatWasClickedId == R.id.action_search) {
-            mAdapter = new NewsRecyclerViewAdapter(this, newsItems);
-            mRecyclerView.setAdapter(mAdapter);
-            mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-            NewsQueryTask task = new NewsQueryTask();
-            task.execute();
+            newsItemViewModel.syncNews();
+            return true;
         }
         return super.onOptionsItemSelected(item);
 

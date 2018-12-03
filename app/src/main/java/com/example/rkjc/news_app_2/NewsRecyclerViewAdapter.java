@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,19 +16,23 @@ import java.util.ArrayList;
 
 
 public class NewsRecyclerViewAdapter  extends RecyclerView.Adapter<NewsRecyclerViewAdapter.NewsViewHolder> {
-    Context mContext;
     ArrayList<NewsItem> newsItems;
+    final private NewsClick newsClick;
 
-
-    public NewsRecyclerViewAdapter(Context context,ArrayList<NewsItem> newsItem){
-        this.mContext=context;
+    public NewsRecyclerViewAdapter(NewsClick onClickListener,ArrayList<NewsItem> newsItem){
+        newsClick = onClickListener;
         this.newsItems=newsItem;
     }
 
-    public interface ItemClickListener {
-        void onItemClick(Cursor cursor, int clickedItemIndex);
+    public interface NewsClick{
+        void onNewsClick(int i);
     }
 
+//    public interface ItemClickListener {
+//        void onItemClick(Cursor cursor, int clickedItemIndex);
+//    }
+
+    @NonNull
     @Override
     public NewsRecyclerViewAdapter.NewsViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         Context context = parent.getContext();
@@ -71,9 +76,8 @@ public class NewsRecyclerViewAdapter  extends RecyclerView.Adapter<NewsRecyclerV
         }
 
         public void onClick(View view) {
-            String url1=newsItems.get(getAdapterPosition()).getUrl();
-            Intent intent=new Intent(Intent.ACTION_VIEW, Uri.parse(url1));
-            mContext.startActivity(intent);
+            int clickPos = getAdapterPosition();
+            newsClick.onNewsClick(clickPos);
         }
     }
 
